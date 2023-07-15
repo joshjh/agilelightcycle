@@ -5,73 +5,38 @@
  */
 package com.raspb;
 
-import com.pi4j.Pi4J;
-import com.pi4j.context.Context;
-import com.pi4j.io.gpio.digital.DigitalOutput;
-import com.pi4j.io.gpio.digital.DigitalState;
-import com.pi4j.platform.Platforms;
-import com.pi4j.util.Console;
-import java.lang.reflect.InvocationTargetException;
-
-/**
- *
- * @author luca
- */
 public class Main {
 
-    private static final int PIN_LED = 22; // PIN 15 = BCM 22
-    private static final Console console = new Console();
-
-    /**
-     * @param args the command line arguments
-     */
-    public static void main(String[] args) throws Exception {
-        console.box("Hello Rasbian world !");
-        Context pi4j = null;
-        try {
-            pi4j = Pi4J.newAutoContext();
-            new Main().run(pi4j);
-        } catch (InvocationTargetException e) {
-            console.println("Error: " + e.getTargetException().getMessage());
-        } catch (Exception e) {
-            console.println("Error: " + e.getMessage());
-            e.printStackTrace();
-        } finally {
-            if (pi4j != null) {
-                pi4j.shutdown();
+     public static void main(String[] args) throws Exception {
+        RGB1602 Display = new RGB1602(2, 16);
+        System.out.println("initialised the module");
+        System.out.println("Sending Display ON");
+        Display.displayInit();
+        Display.lcdClearDisplay();
+        Display.lcdSetRGB(243, 100, 54);
+        Display.lcdSetCursor(0, 1);
+        Display.lcdWriteString("some words to write on line 2".toCharArray());
+          Display.lcdSetCursor(0, 0);
+        Display.lcdWriteString("top line".toCharArray());
+        /* while (true) {
+            Display.lcdSetCursor(0,0);
+            char[] text = "super noodles are super yummy".toCharArray();
+            
+            for (int i =0; i < text.length; i++) {
+                Display.lcdWriteChar(text[i], 200);
             }
-        }
-    }
+            
+            Display.lcdSetCursor(16,1);
+            Display.lcdAutoScroll(true);
 
-    private void run(Context pi4j) throws Exception {
-        Platforms platforms = pi4j.platforms();
-
-        console.box("Pi4J PLATFORMS");
-        console.println();
-        platforms.describe().print(System.out);
-        console.println();
-
-        var ledConfig = DigitalOutput.newConfigBuilder(pi4j)
-                        .id("led")
-                        .name("LED Flasher")
-                        .address(PIN_LED)
-                        .shutdown(DigitalState.LOW)
-                        .initial(DigitalState.LOW)
-                        .provider("pigpio-digital-output");
-
-        var led = pi4j.create(ledConfig);
-        int counter = 0;
-        while (counter < 50) {
-            if (led.equals(DigitalState.HIGH)) {
-                led.low();
-                System.out.println("low");
-            } else {
-                led.high();
-                System.out.println("high");
+            for (int i =0; i < text.length; i++) {
+                Display.lcdWriteChar(text[i], 200);
             }
-            Thread.sleep(500);
-            counter++;
-        }
+            Display.lcdAutoScroll(false);
+            Display.lcdClearDisplay();
+        } */
+       
+        
+        
     }
-
 }
