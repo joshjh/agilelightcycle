@@ -13,11 +13,12 @@ public class Main {
         System.out.println("Sending Display ON");
         Display.displayInit();
         Display.lcdClearDisplay();
-        Display.lcdSetRGB(243, 100, 54);
+        Display.lcdSetRGB(243, 100, 55);
         Display.lcdSetCursor(0, 1);
-        Display.lcdWriteString("some words to write on line 2".toCharArray());
-          Display.lcdSetCursor(0, 0);
-        Display.lcdWriteString("top line".toCharArray());
+        Display.lcdWrite('a', 0);
+        Display.lcdWrite("some words to write on line 2".toCharArray());
+        Display.lcdSetCursor(0, 0);
+        Display.lcdWrite("top line".toCharArray());
         /* while (true) {
             Display.lcdSetCursor(0,0);
             char[] text = "super noodles are super yummy".toCharArray();

@@ -7,12 +7,12 @@ import com.pi4j.io.i2c.I2CProvider;
 
 public class RGB1602 {
 
-    // define the addresses - both of these respond to i2cdump byte method with registers
-    private static final int RGB1602_RGB_ADDRESS = 0x60;
-    private static final int RGB1602_LCD_ADDRESS = 0x3e;
-    private final int rows;
+    // define the addresses - both of these respond to i2cdump byte method with registers.  RPI we're on BUS 1.
+    private static final int RGB1602_RGB_ADDRESS = 0x60; // RGB register is different to the LCD one.
+    private static final int RGB1602_LCD_ADDRESS = 0x3e; // LCD address
+    private final int rows; // normally 2 but we'll have the constructor accept an argument.
     private final int columns;
-    private byte LCD_DISPLAYMODE;
+    private byte LCD_DISPLAYMODE; // perform binary AND OR XOR on it.
     // need to play with these on the data sheet again.
     private static final byte LCD_DISPLAYON = 0x04;
     private static final byte LCD_DISPLAYOFF = 0X00;
@@ -65,7 +65,7 @@ public class RGB1602 {
         LCDinterface = i2CProvider.create(i2cConfigLCD);
     }
 
-    protected void sleep(long millis, int nanos) {
+    private void sleep(long millis, int nanos) {
         try {
             Thread.sleep(millis, nanos);
         } catch (InterruptedException e) {
@@ -79,7 +79,7 @@ public class RGB1602 {
     }
 
     public void displayInit() {
-        // two rows
+        // two rows (rows assigned in the constructor not this displayInit() method)
         if (rows == 2){ 
         writeCommand((byte) (LCD_FUNCTIONSET | LCD_4BITMODE | LCD_2LINE| LCD_5x8DOTS));
         sleep(5, 0);
@@ -103,29 +103,61 @@ public class RGB1602 {
         writeCommand((byte) (LCD_ENTRYMODESET | LCD_DISPLAYMODE));
         lcdBacklightToggle(true);
     }
-
-    public void lcdBlinkOn() {
-        LCDinterface.writeRegister(COMMAND_REG, LCD_BLINKON);
+    public void lcdBlinkOff() {
+        this.LCD_DISPLAYMODE &= ~LCD_BLINKON;
+        writeCommand((byte) (LCD_DISPLAYCONTROL | this.LCD_DISPLAYMODE));
     }
 
+    public void lcdBlinkOn() {
+        this.LCD_DISPLAYMODE |= LCD_BLINKON;
+        writeCommand((byte) (LCD_DISPLAYCONTROL | this.LCD_DISPLAYMODE));
+    }
+
+    
+    /** lcdSetRGB takes the three RGB integers 0 to 255 to create a colour.
+     * 
+     * @throws ArithmeticException for out of bounds integers.
+     * @param red the red value to write to the reg register
+     * @param green the green value to write to the green register
+     * @param blue the blue value to write to the blue register
+     */
     public void lcdSetRGB(int red, int green, int blue) {
+        if (red >= 256 | green >= 256 | blue >=256) {
+            throw new ArithmeticException("The R G B values cannot exceed 255");
+        }
+        else if ((red < 0 | green < 0 | blue < 0)) {
+            throw new ArithmeticException("R G B values must be greated than 0");
+        }
+        else { 
         RGBinterface.writeRegister(REG_RED, red);
         RGBinterface.writeRegister(REG_BLUE, blue);
         RGBinterface.writeRegister(REG_GREEN, green);
+        }
     }
+
     // works
     public void lcdClearDisplay() {
         writeCommand(LCD_CLEARDISPLAY);
     }
 
+    
+    /** 
+     * @param lcd_string Character array to write to the register, one char is written at a time with a 500ms interval
+     * overloaded function with char[] and single char methods.
+     */
     //works
-    public void lcdWriteString(char[] lcd_string) {
+    public void lcdWrite(char[] lcd_string) {
             for(int i = 0; i < lcd_string.length; i++) {
             LCDinterface.writeRegister(0x40, lcd_string[i]);}
-            sleep(5000, 0);
+            sleep(500, 0);
     }
-
-    public void lcdWriteChar(char y, int wait) {
+    
+    
+    /** 
+     * @param y single char to write to the buffer
+     * @param wait int how long to sleep after writing to the register
+     */
+    public void lcdWrite(char y, int wait) {
             LCDinterface.writeRegister(0x40, y);
             sleep(wait, 0);
     }
@@ -155,7 +187,8 @@ public class RGB1602 {
 
     public void lcdCursorHome() {
         writeCommand(LCD_RETURNHOME);
-        sleep(3, 0);
+        // this is slow.
+        sleep(500, 0);
     }
 
     public void lcdScrollDisplayLeft(){
@@ -194,6 +227,7 @@ public class RGB1602 {
     }
     public void clearDisplay() {
         writeCommand(LCD_CLEARDISPLAY);
+        sleep(300, 0);
         lcdCursorHome();
     }
 
