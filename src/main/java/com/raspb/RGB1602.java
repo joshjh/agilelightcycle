@@ -8,17 +8,17 @@ import com.pi4j.io.i2c.I2CProvider;
 public class RGB1602 {
 
     // define the addresses - both of these respond to i2cdump byte method with registers.  RPI we're on BUS 1.
-    private static final int RGB1602_RGB_ADDRESS = 0x60; // RGB register is different to the LCD one.
-    private static final int RGB1602_LCD_ADDRESS = 0x3e; // LCD address
-    private final int rows; // normally 2 but we'll have the constructor accept an argument.
-    private final int columns;
+    private final int RGB1602_RGB_ADDRESS = 0x60; // RGB register is different to the LCD one.
+    private final int RGB1602_LCD_ADDRESS = 0x3e; // LCD address
+    private int rows; // normally 2 but we'll have the constructor accept an argument.
+    private int columns;
     private byte LCD_DISPLAYMODE; // perform binary AND OR XOR on it.
     // need to play with these on the data sheet again.
-    private static final byte LCD_DISPLAYON = 0x04;
-    private static final byte LCD_DISPLAYOFF = 0X00;
-    private static final int COMMAND_REG = 0x80;
-    private static final byte LCD_FUNCTIONSET = (byte) 0x20;
-    private static final byte LCD_CURSORON = (byte) 0x02;
+    private final byte LCD_DISPLAYON = 0x04;
+    private final byte LCD_DISPLAYOFF = 0x00;
+    private final int COMMAND_REG = 0x80;
+    private final byte LCD_FUNCTIONSET = (byte) 0x20;
+    private final byte LCD_CURSORON = (byte) 0x02;
     private final byte LCD_CURSOROFF = (byte) 0x00;
     private final byte LCD_CURSORSHIFT = (byte) 0x10;
     private final byte LCD_DISPLAYMOVE = (byte) 0x08;
@@ -30,28 +30,33 @@ public class RGB1602 {
     private final byte LCD_BLINKOFF = (byte) 0x00;
     private final byte REGMODE1 = (byte) 0x00;
     private final byte REG_MODE2  = (byte) 0x01;
+    private final byte REG_OUTPUT = (byte) 0x08;
     private final byte REG_RED = (byte) 0x04;
     private final byte REG_GREEN = (byte) 0x03;
     private final byte REG_BLUE = (byte) 0x02;
     private final byte LCD_DISPLAYCONTROL = (byte) 0x08;
-    private final static byte LCD_ENTRYMODESET = (byte) 0x04;
-    private final static byte LCD_ENTRYRIGHT = (byte) 0x00;
-    private final static byte LCD_ENTRYLEFT = (byte) 0x02;
-    private final static byte LCD_ENTRYSHIFTINCREMENT = (byte) 0x01;
-    private final static byte LCD_ENTRYSHIFTDECREMENT = (byte) 0x00;
+    private final byte LCD_ENTRYMODESET = (byte) 0x04;
+    private final byte LCD_ENTRYRIGHT = (byte) 0x00;
+    private final byte LCD_ENTRYLEFT = (byte) 0x02;
+    private final byte LCD_ENTRYSHIFTINCREMENT = (byte) 0x01;
+    private final byte LCD_ENTRYSHIFTDECREMENT = (byte) 0x00;
     private final byte LCD_8BITMODE = (byte) 0x10;
     private final byte LCD_4BITMODE = (byte) 0x00;
     private final byte LCD_2LINE = (byte) 0x08;
     private final byte LCD_1LINE = (byte) 0x00;
     private final byte LCD_5x10DOTS = (byte) 0x04;
     private final byte LCD_5x8DOTS = (byte) 0x00;
+    public static boolean rgbInstanceExists;
+    public static boolean lcdInstanceExists;
     private boolean backlight;
     private I2C LCDinterface;
     private I2C RGBinterface;
 
     // these are what we think are the bytes for writing controls/commands to the two registers
 
-    public RGB1602(int rows, int columns) {
+    public RGB1602(int rows, int columns) throws MultiInstanceError {
+        // lets not fire up multiple instances of the i2c connectors!
+        if (!RGB1602.lcdInstanceExists && !RGB1602.rgbInstanceExists) {
         Context pi4j = Pi4J.newAutoContext();
         this.rows = rows;
         this.columns = columns;
@@ -62,8 +67,14 @@ public class RGB1602 {
         I2CConfig i2cConfigLCD = I2C.newConfigBuilder(pi4j).id("LCD1602").bus(1).device(RGB1602_LCD_ADDRESS).build();
         
         RGBinterface = i2CProvider.create(i2cConfigRGB);
+        RGB1602.rgbInstanceExists = true;
         LCDinterface = i2CProvider.create(i2cConfigLCD);
+        RGB1602.lcdInstanceExists = true;
     }
+    else { 
+        throw new MultiInstanceError();
+    }
+}
 
     private void sleep(long millis, int nanos) {
         try {
@@ -98,19 +109,25 @@ public class RGB1602 {
         // turn it on
         writeCommand((byte) (LCD_DISPLAYCONTROL | LCD_DISPLAYON | LCD_CURSOROFF | LCD_BLINKOFF));
         writeCommand((byte) (LCD_ENTRYMODESET | LCD_ENTRYLEFT | LCD_ENTRYSHIFTDECREMENT));
+
         // default display modeset
         LCD_DISPLAYMODE = (byte) LCD_ENTRYLEFT | LCD_ENTRYSHIFTDECREMENT;
         writeCommand((byte) (LCD_ENTRYMODESET | LCD_DISPLAYMODE));
+        // seem to need these to flash up the RGB backlight for the first time.
+        RGBinterface.writeRegister(REGMODE1, (byte) 0);
+        RGBinterface.writeRegister(REG_OUTPUT, 0xFF);
         lcdBacklightToggle(true);
     }
-    public void lcdBlinkOff() {
-        this.LCD_DISPLAYMODE &= ~LCD_BLINKON;
-        writeCommand((byte) (LCD_DISPLAYCONTROL | this.LCD_DISPLAYMODE));
-    }
 
+    // doesnt work?
+    public void lcdBlinkOff() {
+        LCD_DISPLAYMODE &= ~LCD_BLINKON;
+        writeCommand((byte) (LCD_DISPLAYCONTROL | LCD_DISPLAYMODE));
+    }
+    // doesnt work
     public void lcdBlinkOn() {
-        this.LCD_DISPLAYMODE |= LCD_BLINKON;
-        writeCommand((byte) (LCD_DISPLAYCONTROL | this.LCD_DISPLAYMODE));
+        LCD_DISPLAYMODE |= LCD_BLINKON;
+        writeCommand( (byte) (LCD_DISPLAYCONTROL | LCD_DISPLAYMODE));
     }
 
     
@@ -157,15 +174,17 @@ public class RGB1602 {
      * @param y single char to write to the buffer
      * @param wait int how long to sleep after writing to the register
      */
+    //works 
     public void lcdWrite(char y, int wait) {
             LCDinterface.writeRegister(0x40, y);
             sleep(wait, 0);
     }
-
+    // doesnt work
     public void lcdCursorOn() {
-        LCDinterface.writeRegister(COMMAND_REG, LCD_CURSORON);
+        this.LCD_DISPLAYMODE |= LCD_CURSORON;
+        writeCommand((byte) (LCD_DISPLAYCONTROL | this.LCD_DISPLAYMODE));;
     }
-    
+    // works. It's not intelligent so needs to be turned on when cursor position is to the right/left of the array.  Drops one char for one char.
     public void lcdAutoScroll(boolean value) {
         // the ~ is invert bitwise complement (inverts the 1s and 0s)
         if (value) {
@@ -181,20 +200,24 @@ public class RGB1602 {
     public void lcdBacklightToggle(boolean value) {
         // works
         this.backlight = value;
-        byte b1= (this.backlight) ? (byte) 0xff : (byte) 0x00;
-        RGBinterface.writeRegister(0x06, b1);
-    }
-
+        if (this.backlight) {
+            lcdSetRGB(255, 255, 255);
+        }
+        else {
+            lcdSetRGB(0, 0, 0);
+        }
+        }
+    // works
     public void lcdCursorHome() {
         writeCommand(LCD_RETURNHOME);
         // this is slow.
         sleep(500, 0);
     }
-
+    //works 
     public void lcdScrollDisplayLeft(){
         writeCommand((byte) (LCD_CURSORSHIFT | LCD_DISPLAYMOVE | LCD_MOVELEFT));
     }
-
+    // works
     public void lcdScrollDisplayRight(){
         writeCommand((byte) (LCD_CURSORSHIFT | LCD_DISPLAYMOVE | LCD_MOVERIGHT));
     }
@@ -215,6 +238,7 @@ public class RGB1602 {
         LCDinterface.close();
         RGBinterface.close();
     }
+    //works
     public void lcdSetCursor(int col, int row) {
         if(row == 0) {
             col|=(byte) 0x80;
@@ -225,6 +249,8 @@ public class RGB1602 {
         writeCommand((byte) col);
 
     }
+    //works
+    
     public void clearDisplay() {
         writeCommand(LCD_CLEARDISPLAY);
         sleep(300, 0);

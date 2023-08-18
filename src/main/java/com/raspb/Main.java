@@ -5,6 +5,8 @@
  */
 package com.raspb;
 
+import java.util.Scanner;
+
 public class Main {
 
      public static void main(String[] args) throws Exception {
@@ -12,32 +14,40 @@ public class Main {
         System.out.println("initialised the module");
         System.out.println("Sending Display ON");
         Display.displayInit();
-        Display.lcdClearDisplay();
         Display.lcdSetRGB(243, 100, 55);
         Display.lcdSetCursor(0, 1);
-        Display.lcdWrite('a', 0);
-        Display.lcdWrite("some words to write on line 2".toCharArray());
-        Display.lcdSetCursor(0, 0);
-        Display.lcdWrite("top line".toCharArray());
-        /* while (true) {
-            Display.lcdSetCursor(0,0);
-            char[] text = "super noodles are super yummy".toCharArray();
-            
-            for (int i =0; i < text.length; i++) {
-                Display.lcdWriteChar(text[i], 200);
-            }
-            
-            Display.lcdSetCursor(16,1);
-            Display.lcdAutoScroll(true);
-
-            for (int i =0; i < text.length; i++) {
-                Display.lcdWriteChar(text[i], 200);
-            }
-            Display.lcdAutoScroll(false);
-            Display.lcdClearDisplay();
-        } */
-       
+       // Display.lcdWrite('x', 40);
+        Scanner sc = new Scanner(System.in);
+        Display.lcdAutoScroll(false);
         
+        while (true) {
+            char x = sc.nextLine().charAt(0);
+            Display.lcdWrite(x, 2000);
+            System.out.println(x);
+        
+            if (x == '1') {
+                Display.lcdBlinkOn();
+            }
+            if (x == '0') {
+                Display.lcdBlinkOff();
+            }
+            if (x == 'r') {
+                Display.lcdCursorHome();
+            }
+            if (x == 's') {
+                Display.lcdAutoScroll(true);
+            }
+            if (x == 'x') {
+                break;
+            }
+            
+            }
+        sc.close();
+        }
         
     }
-}
+
+
+            
+      
+
