@@ -4,6 +4,8 @@ The RGB 1602 implementation here works with the DF ROBOT RGB 1602 LCD Hat for th
 
 PI4J 2+ dependancy - consult the PI4J docs for setting up your RPI for Java.
 
+Remember - don't do what your man here did and wonder why your button events don't work if you didn't put the jumpers in.
+
 Credit https://github.com/DFRobot/DFRobot_RGB1602_RaspberryPi for the Python implementation.
 
 
