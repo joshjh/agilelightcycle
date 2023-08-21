@@ -4,6 +4,12 @@ import com.pi4j.context.Context;
 import com.pi4j.io.i2c.I2C;
 import com.pi4j.io.i2c.I2CConfig;
 import com.pi4j.io.i2c.I2CProvider;
+import com.pi4j.io.gpio.digital.DigitalInput;
+import com.pi4j.io.gpio.digital.DigitalInputConfig;
+import com.pi4j.io.gpio.digital.DigitalInputProvider;
+import com.pi4j.io.gpio.digital.DigitalStateChangeListener;
+import com.pi4j.io.gpio.digital.PullResistance;
+
 
 public class RGB1602 {
 
@@ -46,12 +52,20 @@ public class RGB1602 {
     private final byte LCD_1LINE = (byte) 0x00;
     private final byte LCD_5x10DOTS = (byte) 0x04;
     private final byte LCD_5x8DOTS = (byte) 0x00;
+    // GPIO pins to the HAT like this
+    public static final int BTN_SELECT = 16;
+    public static final int BTN_UP = 17;
+    public static final int BTN_DOWN = 18;
+    public static final int BTN_LEFT = 19;
+    public static final int BTN_RIGHT = 20;
     public static boolean rgbInstanceExists;
     public static boolean lcdInstanceExists;
+    // public facing digital input objects
+    public DigitalInput select_button, left_button, right_button, up_button, down_button;
     private boolean backlight;
     private I2C LCDinterface;
     private I2C RGBinterface;
-
+ 
     // these are what we think are the bytes for writing controls/commands to the two registers
 
     public RGB1602(int rows, int columns) throws MultiInstanceError {
@@ -60,16 +74,29 @@ public class RGB1602 {
         Context pi4j = Pi4J.newAutoContext();
         this.rows = rows;
         this.columns = columns;
-        I2CProvider i2CProvider = pi4j.provider("linuxfs-i2c");
+        //providers
+        I2CProvider i2CProvider = pi4j.provider("pigpio-i2c");
+        DigitalInputProvider digitalInputProvider = pi4j.provider("pigpio-digital-input");
 
         // lets set up the two devices with I2CConfigs
         I2CConfig i2cConfigRGB = I2C.newConfigBuilder(pi4j).id("RBG1602").bus(1).device(RGB1602_RGB_ADDRESS).build();
         I2CConfig i2cConfigLCD = I2C.newConfigBuilder(pi4j).id("LCD1602").bus(1).device(RGB1602_LCD_ADDRESS).build();
-        
         RGBinterface = i2CProvider.create(i2cConfigRGB);
         RGB1602.rgbInstanceExists = true;
         LCDinterface = i2CProvider.create(i2cConfigLCD);
         RGB1602.lcdInstanceExists = true;
+
+        // set up digital input button stuff.  Exposed public so no requirement to set up the listeners here just expose them.
+        DigitalInputConfig SelectButton = DigitalInput.newConfigBuilder(pi4j).address(BTN_SELECT).pull(PullResistance.PULL_DOWN).build();
+        DigitalInputConfig UpButton = DigitalInput.newConfigBuilder(pi4j).address(BTN_UP).pull(PullResistance.PULL_DOWN).build();
+        DigitalInputConfig DownButton = DigitalInput.newConfigBuilder(pi4j).address(BTN_DOWN).pull(PullResistance.PULL_DOWN).build();
+        DigitalInputConfig LeftButton = DigitalInput.newConfigBuilder(pi4j).address(BTN_LEFT).pull(PullResistance.PULL_DOWN).build();
+        DigitalInputConfig RightButton = DigitalInput.newConfigBuilder(pi4j).address(BTN_RIGHT).pull(PullResistance.PULL_DOWN).build();
+        select_button = digitalInputProvider.create(SelectButton);
+        up_button = digitalInputProvider.create(UpButton);
+        left_button = digitalInputProvider.create(LeftButton);
+        right_button = digitalInputProvider.create(RightButton);
+        down_button = digitalInputProvider.create(DownButton);
     }
     else { 
         throw new MultiInstanceError();
