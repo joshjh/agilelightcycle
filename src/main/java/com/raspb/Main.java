@@ -19,6 +19,7 @@ public class Main {
        // Display.lcdWrite('x', 40);
         Scanner sc = new Scanner(System.in);
         Display.lcdAutoScroll(false);
+        Display.lcdMegaDeathError();
         
         while (true) {
             char x = sc.nextLine().charAt(0);

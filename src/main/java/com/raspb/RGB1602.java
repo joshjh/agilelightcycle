@@ -65,7 +65,10 @@ public class RGB1602 {
     private boolean backlight;
     private I2C LCDinterface;
     private I2C RGBinterface;
- 
+    private static final int[] rgbRedIntArray = {255, 0, 0};
+    private static final int[] rgbGreenIntArray = {0, 255, 0};
+    private static final int[] rgbBlueIntArray = {0, 0, 255};
+    String megaDeathErrorString = "AWAKE! FEAR! FIRE! FOES! AWAKE! FEAR! FIRE! FOES!   AWAKE! AWAKE!";
     // these are what we think are the bytes for writing controls/commands to the two registers
 
     public RGB1602(int rows, int columns) throws MultiInstanceError {
@@ -179,11 +182,46 @@ public class RGB1602 {
         }
     }
 
+    public void lcdSetRGB(int[] RGB) {
+        if (RGB[0] >= 256 | RGB[1] >= 256 | RGB[2] >=256) {
+            throw new ArithmeticException("The R G B values cannot exceed 255");
+        }
+        else if (RGB[0] < 0 | RGB[1] < 0  | RGB[2] < 0 ) {
+            throw new ArithmeticException("R G B values must be greated than 0");
+        }
+        else { 
+        RGBinterface.writeRegister(REG_RED, RGB[0]);
+        RGBinterface.writeRegister(REG_BLUE, RGB[1]);
+        RGBinterface.writeRegister(REG_GREEN, RGB[2]);
+        }
+    }
+
     // works
     public void lcdClearDisplay() {
         writeCommand(LCD_CLEARDISPLAY);
     }
 
+    public void lcdMegaDeathError() throws InterruptedException {
+        lcdClearDisplay();
+        lcdCursorHome();
+        int[][] colourArrays = {rgbRedIntArray, rgbGreenIntArray, rgbBlueIntArray};
+        int colorArrayPosn = 0;
+        while (!Thread.currentThread().isInterrupted()) {
+            lcdSetRGB(colourArrays[colorArrayPosn]);
+            lcdClearDisplay();
+            lcdCursorHome();
+            for (char c:megaDeathErrorString.toCharArray()) {
+                lcdAutoScroll(false);
+                lcdWrite(c, 20);
+                lcdAutoScroll(true);
+            }
+            colorArrayPosn++;
+            if (colorArrayPosn == 3) {colorArrayPosn = 0;} 
+        }
+        if (Thread.currentThread().isInterrupted()) {
+            throw new InterruptedException("Breaking out of lcdMegaDeathError() on interupt");
+        }
+    }
     
     /** 
      * @param lcd_string Character array to write to the register, one char is written at a time with a 500ms interval
