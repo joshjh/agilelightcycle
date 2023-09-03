@@ -65,6 +65,7 @@ public class RGB1602 {
     private boolean backlight;
     private I2C LCDinterface;
     private I2C RGBinterface;
+    Context pi4j = Pi4J.newAutoContext();
     private static final int[] rgbRedIntArray = {255, 0, 0};
     private static final int[] rgbGreenIntArray = {0, 255, 0};
     private static final int[] rgbBlueIntArray = {0, 0, 255};
@@ -74,7 +75,7 @@ public class RGB1602 {
     public RGB1602(int rows, int columns) throws MultiInstanceError {
         // lets not fire up multiple instances of the i2c connectors!
         if (!RGB1602.lcdInstanceExists && !RGB1602.rgbInstanceExists) {
-        Context pi4j = Pi4J.newAutoContext();
+        
         this.rows = rows;
         this.columns = columns;
         //providers
@@ -320,6 +321,12 @@ public class RGB1602 {
         writeCommand(LCD_CLEARDISPLAY);
         sleep(300, 0);
         lcdCursorHome();
+    }
+
+    public void lcdShutDown() {
+        closeInterface();
+        pi4j.shutdown();
+
     }
 
 }
