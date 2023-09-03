@@ -12,5 +12,5 @@ module com.raspb.agilelightcycle {
     // allow access to classes in the following namespaces for Pi4J annotation processing
     opens com.raspb to com.pi4j;
 
-    //exports com.raspb;
+    exports com.raspb;
 }
